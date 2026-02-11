@@ -26,7 +26,7 @@ from . import peak_selection
 from . import evaluation
 
 from bmicro import __version__ as bmicroversion
-from bmlab import __version__ as bmlabversion
+from bmlab._version import version as bmlabversion
 
 
 def check_event_mime_data(event):

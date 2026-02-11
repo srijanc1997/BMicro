@@ -13,7 +13,7 @@ from PyQt6.QtCore import QObject, QTimer, QThread, pyqtSignal, QCoreApplication
 import multiprocessing as mp
 
 from bmlab.session import Session
-from bmlab.fits import lorentz
+from bmlab.fits import lorentz, dho
 
 from bmicro.gui.mpl import MplCanvas
 
@@ -114,6 +114,9 @@ class EvaluationView(QtWidgets.QWidget):
         self.nrBrillouinPeaks_4.toggled.connect(
             lambda: self.setNrBrillouinPeaks(4))
 
+        self.combobox_fit_model.currentIndexChanged.connect(
+            self.on_fit_model_changed)
+
     def update_ui(self):
         session = Session.get_instance()
         evm = session.evaluation_model()
@@ -129,6 +132,13 @@ class EvaluationView(QtWidgets.QWidget):
         elif evm.nr_brillouin_peaks == 4:
             self.nrBrillouinPeaks_4.setChecked(True)
             self.bounds_table.setEnabled(True)
+
+        fit_model = getattr(evm, 'fit_model', 'lorentz')
+        self.combobox_fit_model.blockSignals(True)
+        self.combobox_fit_model.setCurrentIndex(
+            1 if fit_model == 'dho' else 0
+        )
+        self.combobox_fit_model.blockSignals(False)
 
         self.updateBoundsTable()
         self.setup_parameter_selection_combobox()
@@ -270,12 +280,22 @@ class EvaluationView(QtWidgets.QWidget):
                     # the following entries belong to a multi-peak fit
                     for peak_nr in range(brillouin_fits[0].shape[2]):
                         idx = (image_nr, region_nr, peak_nr)
-                        current_fit = lorentz(
-                            x,
-                            brillouin_fits[0][idx],
-                            brillouin_fits[1][idx],
-                            brillouin_fits[2][idx]
-                        )
+                        # Select peak-shape model based on evaluation settings
+                        fit_model = getattr(evm, 'fit_model', 'lorentz')
+                        if fit_model == 'dho':
+                            current_fit = dho(
+                                x,
+                                brillouin_fits[0][idx],
+                                brillouin_fits[1][idx],
+                                brillouin_fits[2][idx]
+                            )
+                        else:
+                            current_fit = lorentz(
+                                x,
+                                brillouin_fits[0][idx],
+                                brillouin_fits[1][idx],
+                                brillouin_fits[2][idx]
+                            )
                         if peak_nr < 2:
                             y = current_fit
                         else:
@@ -303,6 +323,8 @@ class EvaluationView(QtWidgets.QWidget):
                         200
                     )
                     idx = (image_nr, region_nr, 0)
+                    # Rayleigh peaks are still visualized with a Lorentzian
+                    # line shape independent of the Brillouin model.
                     y = lorentz(
                         x,
                         rayleigh_fits[0][idx],
@@ -387,6 +409,16 @@ class EvaluationView(QtWidgets.QWidget):
 
         self.updateBoundsTable()
 
+    def on_fit_model_changed(self):
+        session = Session.get_instance()
+        evm = session.evaluation_model()
+        if evm is None:
+            return
+        evm.fit_model = (
+            'dho' if self.combobox_fit_model.currentIndex() == 1 else 'lorentz'
+        )
+        self.refresh_plot()
+
     def boundsChanged(self, row, column):
         session = Session.get_instance()
         evm = session.evaluation_model()
@@ -426,6 +458,8 @@ class EvaluationView(QtWidgets.QWidget):
         self.combobox_peak_number.clear()
         self.combobox_peak_number.addItems(['Single-Peak-Fit'])
         self.combobox_peak_number.blockSignals(False)
+
+        self.combobox_fit_model.setCurrentIndex(0)
 
         self.mplcanvas.draw()
 
@@ -478,8 +512,9 @@ class EvaluationView(QtWidgets.QWidget):
         self.evaluation_running = True
         self.button_evaluate.setText('Cancel')
         # While the evaluation is running, we
-        # disable switching to multi-peak fit and adjusting bounds
+        # disable switching to multi-peak fit, fit model, and adjusting bounds
         self.nrBrillouinPeaksGroup.setEnabled(False)
+        self.fitModelGroup.setEnabled(False)
         self.bounds_table.setEnabled(False)
         self.evaluation_timer.start(500)
 
@@ -525,6 +560,7 @@ class EvaluationView(QtWidgets.QWidget):
             self.evaluation_running = False
             self.button_evaluate.setText('Evaluate')
             self.nrBrillouinPeaksGroup.setEnabled(True)
+            self.fitModelGroup.setEnabled(True)
             session = Session.get_instance()
             if session.evaluation_model().nr_brillouin_peaks > 1:
                 self.bounds_table.setEnabled(True)

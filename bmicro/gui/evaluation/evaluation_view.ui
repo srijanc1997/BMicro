@@ -85,6 +85,39 @@
         </widget>
        </item>
        <item>
+        <widget class="QGroupBox" name="fitModelGroup">
+         <property name="title">
+          <string>Brillouin peak fit model</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_fit_model">
+          <item>
+           <widget class="QLabel" name="label_fit_model">
+            <property name="text">
+             <string>Fit model:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="combobox_fit_model">
+            <property name="editable">
+             <bool>false</bool>
+            </property>
+            <item>
+             <property name="text">
+              <string>Lorentz</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Damped harmonic oscillator (DHO)</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
         <widget class="QWidget" name="widget" native="true">
          <property name="minimumSize">
           <size>

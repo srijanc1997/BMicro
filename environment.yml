@@ -1,0 +1,24 @@
+# Conda environment for BMicro (with optional local bmlab)
+#
+# 1) Create and activate:
+#      conda env create -f environment.yml
+#      conda activate bmicro
+#
+# 2) From this directory (BMicro repo root), install BMicro and local bmlab:
+#      pip install -e ../bmlab
+#      pip install -e .
+#    If bmlab is elsewhere, use: pip install -e C:\path\to\bmlab
+#
+# 3) Run BMicro:
+#      python -m bmicro
+
+name: bmicro
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.10,<3.13
+  - pip
+  - pip:
+    - -e ../bmlab
+    - -e .
